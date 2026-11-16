@@ -1,0 +1,5 @@
+{
+  "Category": "memorymap",
+  "Pattern": "\\b(mmap|munmap|mremap|mprotect)\\s*\\(",
+  "Matches": []
+}

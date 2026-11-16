@@ -34,7 +34,7 @@ namespace OpenLogReplicator {
         std::string msg;
 
         explicit RedoLogException(int newCode, std::string newMsg);
-        RedoLogException(const RedoLogException&) = delete;
+        RedoLogException(const RedoLogException&) = default; // MSVC exception transport requires a real copy constructor.
         RedoLogException& operator=(const RedoLogException&) = delete;
 
         friend std::ostream& operator<<(std::ostream& os, const RedoLogException& exception);

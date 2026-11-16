@@ -1,0 +1,20 @@
+{
+  "version": "1.9.0",
+  "log-level": 3,
+  "source": [{
+    "alias": "S1", "name": "ORCL",
+    "reader": {
+      "type": "online", "user": "OLR_CDC",
+      "password": "REPLACE_WITH_DATABASE_PASSWORD",
+      "server": "//127.0.0.1:1521/ORCL"
+    },
+    "format": { "type": "json" },
+    "state": { "type": "disk", "path": "checkpoint", "interval-s": 10, "keep-checkpoints": 100 },
+    "memory": { "min-mb": 64, "max-mb": 1024, "swap-path": "swap" },
+    "filter": { "table": [{ "owner": "OLR_TEST", "table": "CDC_TEST" }] }
+  }],
+  "target": [{
+    "alias": "F1", "source": "S1",
+    "writer": { "type": "file", "output": "logs/cdc-%t.json", "timestamp-format": "%Y-%m-%d_%H-%M-%S", "new-line": 1, "max-file-size": 104857600, "append": 1 }
+  }]
+}

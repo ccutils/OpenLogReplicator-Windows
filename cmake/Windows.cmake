@@ -1,0 +1,13 @@
+if(NOT MSVC OR NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
+    message(FATAL_ERROR "The Windows product requires MSVC x64")
+endif()
+if(WITH_PROTOBUF OR WITH_ZEROMQ OR WITH_RDKAFKA OR WITH_PROMETHEUS)
+    message(FATAL_ERROR "Optional connectors are gated until the Windows baseline is validated")
+endif()
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+add_compile_definitions(WIN32_LEAN_AND_MEAN NOMINMAX _WIN32_WINNT=0x0603 WINVER=0x0603
+    _CRT_SECURE_NO_WARNINGS _CRT_NONSTDC_NO_WARNINGS OLR_BUILD_CONFIGURATION="$<CONFIG>")
+include_directories("${PROJECT_SOURCE_DIR}/src/platform/windows/include")
+add_compile_options(/W4 /EHsc /utf-8 /bigobj "/FI${PROJECT_SOURCE_DIR}/src/platform/windows/Compat.h")
+add_compile_definitions($<$<CONFIG:Release>:CTXASSERT=0> $<$<CONFIG:Debug>:CTXASSERT=1>)
+add_link_options(/SUBSYSTEM:CONSOLE,6.03)

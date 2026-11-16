@@ -1,0 +1,13 @@
+/build*/
+/dist/
+/bin/
+/logs/
+/checkpoint/
+/swap/
+/vendor/
+/config.h
+/.ssh-known-hosts
+/config/*.local.json
+/test-results/
+/*.log
+*.json.lock

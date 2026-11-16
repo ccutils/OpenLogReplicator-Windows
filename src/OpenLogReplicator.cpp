@@ -136,7 +136,7 @@ namespace OpenLogReplicator {
         }
 
         struct stat configFileStat{};
-        fid = open(configFileName.c_str(), O_RDONLY);
+        fid = olrOpen(configFileName.c_str(), O_RDONLY);
         if (fid == -1)
             throw RuntimeException(10001, "file: " + configFileName + " - open for read returned: " + strerror(errno));
 
@@ -1054,7 +1054,11 @@ namespace OpenLogReplicator {
                 if (writerJson.HasMember("max-file-size"))
                     maxFileSize = Ctx::getJsonFieldU64(configFileName, writerJson, "max-file-size");
 
+#ifdef _WIN32
+                std::string timestampFormat = "%Y-%m-%d_%H-%M-%S";
+#else
                 std::string timestampFormat = "%F_%T";
+#endif
                 if (writerJson.HasMember("timestamp-format"))
                     timestampFormat = Ctx::getJsonFieldS(configFileName, Ctx::JSON_PARAMETER_LENGTH, writerJson, "timestamp-format");
 

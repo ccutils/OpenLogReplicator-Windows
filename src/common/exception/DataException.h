@@ -30,7 +30,7 @@ namespace OpenLogReplicator {
         std::string msg;
 
         explicit DataException(int newCode, std::string newMsg);
-        DataException(const DataException&) = delete;
+        DataException(const DataException&) = default; // MSVC exception transport requires a real copy constructor.
         DataException& operator=(const DataException&) = delete;
 
         friend std::ostream& operator<<(std::ostream& os, const DataException& exception);

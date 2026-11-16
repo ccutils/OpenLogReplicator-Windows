@@ -64,7 +64,7 @@ namespace OpenLogReplicator {
 
         while (memoryChunksAllocated > 0) {
             --memoryChunksAllocated;
-            free(memoryChunks[memoryChunksAllocated]);
+            olrAlignedRelease(memoryChunks[memoryChunksAllocated]);
             memoryChunks[memoryChunksAllocated] = nullptr;
         }
 
@@ -341,7 +341,7 @@ namespace OpenLogReplicator {
 
             memoryChunks = new uint8_t*[memoryChunksMax];
             for (uint64_t i = 0; i < memoryChunksMin; ++i) {
-                memoryChunks[i] = static_cast<uint8_t*>(aligned_alloc(MEMORY_ALIGNMENT, MEMORY_CHUNK_SIZE));
+                memoryChunks[i] = static_cast<uint8_t*>(olrAlignedAllocate(MEMORY_ALIGNMENT, MEMORY_CHUNK_SIZE));
                 if (unlikely(memoryChunks[i] == nullptr))
                     throw RuntimeException(10016, "couldn't allocate " + std::to_string(MEMORY_CHUNK_SIZE_MB) +
                                            " bytes memory for: memory chunks#2");
@@ -437,7 +437,7 @@ namespace OpenLogReplicator {
 
                     if (memoryChunksAllocated < memoryChunksMax) {
                         t->contextSet(Thread::CONTEXT::OS, Thread::REASON::OS);
-                        memoryChunks[memoryChunksFree] = static_cast<uint8_t*>(aligned_alloc(MEMORY_ALIGNMENT, MEMORY_CHUNK_SIZE));
+                        memoryChunks[memoryChunksFree] = static_cast<uint8_t*>(olrAlignedAllocate(MEMORY_ALIGNMENT, MEMORY_CHUNK_SIZE));
                         t->contextSet(Thread::CONTEXT::MEM, Thread::REASON::MEM);
                         if (unlikely(memoryChunks[memoryChunksFree] == nullptr))
                             throw RuntimeException(10016, "couldn't allocate " + std::to_string(MEMORY_CHUNK_SIZE_MB) +
@@ -540,7 +540,7 @@ namespace OpenLogReplicator {
 
         if (chunk != nullptr) {
             t->contextSet(Thread::CONTEXT::OS, Thread::REASON::OS);
-            free(chunk);
+            olrAlignedRelease(chunk);
         }
 
         t->contextSet(Thread::CONTEXT::CPU);
@@ -838,7 +838,7 @@ namespace OpenLogReplicator {
             if (!hardShutdown) {
                 if (unlikely(isTraceSet(TRACE::SLEEP)))
                     logTrace(TRACE::SLEEP, "Ctx:mainLoop");
-                condMainLoop.wait(lck);
+                condMainLoop.wait(lck, [this] { return hardShutdown || softShutdown; });
             }
         }
 
@@ -928,7 +928,9 @@ namespace OpenLogReplicator {
                   " context: " + std::to_string(static_cast<uint>(thread->curContext)) +
                   " reason: " + std::to_string(static_cast<uint>(thread->curReason)) +
                   " switches: " + std::to_string(thread->contextSwitches));
+#ifndef _WIN32
             pthread_kill(thread->pthread, SIGUSR1);
+#endif
         }
     }
 

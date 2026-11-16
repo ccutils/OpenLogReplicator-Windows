@@ -24,7 +24,11 @@ along with OpenLogReplicator; see the file LICENSE;  If not see
 #define OpenLogReplicator_VERSION_MINOR @OpenLogReplicator_VERSION_MINOR@
 #define OpenLogReplicator_VERSION_PATCH @OpenLogReplicator_VERSION_PATCH@
 #define OpenLogReplicator_SCHEMA_VERSION "@SCHEMA_VERSION@"
+#ifdef OLR_BUILD_CONFIGURATION
+#define OpenLogReplicator_CMAKE_BUILD_TYPE OLR_BUILD_CONFIGURATION
+#else
 #define OpenLogReplicator_CMAKE_BUILD_TYPE "@CMAKE_BUILD_TYPE@"
+#endif
 #define OpenLogReplicator_CMAKE_BUILD_TIMESTAMP "@CMAKE_BUILD_TIMESTAMP@"
 #define OpenLogReplicator_CPU_ARCH "@CPU_ARCH@"
 #define OpenLogReplicator_THREAD_INFO "@THREAD_INFO@"

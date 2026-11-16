@@ -285,7 +285,7 @@ namespace OpenLogReplicator {
 
             ctx->info(0, "opening output file: " + fullFileName);
             contextSet(CONTEXT::OS, REASON::OS);
-            outputDes = open(fullFileName.c_str(), O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR);
+            outputDes = olrOpen(fullFileName.c_str(), O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR);
             contextSet(CONTEXT::CPU);
 
             if (outputDes == -1)

@@ -67,7 +67,7 @@ namespace OpenLogReplicator {
         ctx->info(0, "config file changed, reloading");
 
         try {
-            const int fid = open(configFileName.c_str(), O_RDONLY);
+            const int fid = olrOpen(configFileName.c_str(), O_RDONLY);
             if (unlikely(fid == -1))
                 throw ConfigurationException(10001, "file: " + configFileName + " - open for read returned: " + strerror(errno));
 

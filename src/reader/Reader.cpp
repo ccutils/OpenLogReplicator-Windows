@@ -65,7 +65,7 @@ namespace OpenLogReplicator {
         }
 
         if (headerBuffer == nullptr) {
-            headerBuffer = static_cast<uint8_t*>(aligned_alloc(Ctx::MEMORY_ALIGNMENT, PAGE_SIZE_MAX * 2));
+            headerBuffer = static_cast<uint8_t*>(olrAlignedAllocate(Ctx::MEMORY_ALIGNMENT, PAGE_SIZE_MAX * 2));
             if (unlikely(headerBuffer == nullptr))
                 throw RuntimeException(10016, "couldn't allocate " + std::to_string(PAGE_SIZE_MAX * 2) +
                                        " bytes memory for: read header");
@@ -96,7 +96,7 @@ namespace OpenLogReplicator {
         redoBufferList = nullptr;
 
         if (headerBuffer != nullptr) {
-            free(headerBuffer);
+            olrAlignedRelease(headerBuffer);
             headerBuffer = nullptr;
         }
 
@@ -237,7 +237,7 @@ namespace OpenLogReplicator {
 
             if (fileCopyDes == -1) {
                 fileNameWrite = ctx->redoCopyPath + "/" + database + "_" + sequenceHeader.toString() + ".arc";
-                fileCopyDes = open(fileNameWrite.c_str(), O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR);
+                fileCopyDes = olrOpen(fileNameWrite.c_str(), O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR);
                 if (unlikely(fileCopyDes == -1))
                     throw RuntimeException(10006, "file: " + fileNameWrite + " - open for writing returned: " + strerror(errno));
                 ctx->info(0, "writing redo log copy to: " + fileNameWrite);

@@ -34,7 +34,7 @@ namespace OpenLogReplicator {
         std::string msg;
 
         explicit ConfigurationException(int newCode, std::string newMsg);
-        ConfigurationException(const ConfigurationException&) = delete;
+        ConfigurationException(const ConfigurationException&) = default; // MSVC exception transport requires a real copy constructor.
         ConfigurationException& operator=(const ConfigurationException&) = delete;
 
         friend std::ostream& operator<<(std::ostream& os, const ConfigurationException& exception);

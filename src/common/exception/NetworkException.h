@@ -34,7 +34,7 @@ namespace OpenLogReplicator {
         std::string msg;
 
         explicit NetworkException(int newCode, std::string newMsg);
-        NetworkException(const NetworkException&) = delete;
+        NetworkException(const NetworkException&) = default; // MSVC exception transport requires a real copy constructor.
         NetworkException& operator=(const NetworkException&) = delete;
 
         friend std::ostream& operator<<(std::ostream& os, const NetworkException& exception);

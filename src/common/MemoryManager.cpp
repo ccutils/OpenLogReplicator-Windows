@@ -262,7 +262,7 @@ namespace OpenLogReplicator {
             flags |= O_DIRECT;
 #endif
 
-        const int fileDes = open(fileName.c_str(), flags);
+        const int fileDes = olrOpen(fileName.c_str(), flags);
         if (fileDes == -1)
             throw RuntimeException(50072, "swap file: " + fileName + " - open for read returned: " + strerror(errno));
 
@@ -352,7 +352,7 @@ namespace OpenLogReplicator {
 #endif
 
         constexpr int mode = S_IWUSR | S_IRUSR;
-        const int fileDes = open(fileName.c_str(), flags, mode);
+        const int fileDes = olrOpen(fileName.c_str(), flags, mode);
         if (fileDes == -1)
             throw RuntimeException(50072, "swap file: " + fileName + " - open for writing returned: " + strerror(errno));
 

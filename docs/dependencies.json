@@ -1,0 +1,35 @@
+{
+  "upstream": {
+    "repository": "https://github.com/bersler/OpenLogReplicator",
+    "tag": "v1.9.0",
+    "commit": "1a83a769e05eefd81fe5397205554f78290fa4f9"
+  },
+  "rapidjson": {
+    "repository": "https://github.com/Tencent/rapidjson",
+    "tag": "v1.1.0",
+    "commit": "f54b0e47a08782a6131cc3d60f94d038fa6e0a51",
+    "usage": "include/ only; bin/jsonchecker is not used",
+    "license": "docs/licenses/RapidJSON.txt"
+  },
+  "oci": {
+    "version": "11.2.0.4.0 Windows x64",
+    "source": "Authorized existing Oracle home on validation server",
+    "redistributed": false,
+    "header_sha256": "15E2EA6CC1FADA5331431E907CE19264FF024BFFE1D8072F8D45E618D7D88ECD",
+    "import_library_sha256": "60CDBCD06898FB0BD0E1F1465B1CEC4CF3E2CCAF0555925A1B435DE82E54AFCC"
+  },
+  "build": {
+    "compiler": "MSVC 19.51.36260.0",
+    "generator": "Visual Studio 18 2026",
+    "architecture": "x64",
+    "runtime": "static /MT",
+    "subsystem": "6.03",
+    "windows_sdk": "10.0.26100.0"
+  },
+  "disabled": [
+    "Kafka",
+    "ZeroMQ",
+    "Prometheus",
+    "Protobuf"
+  ]
+}

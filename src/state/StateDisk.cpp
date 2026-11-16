@@ -78,7 +78,7 @@ namespace OpenLogReplicator {
 
         in.resize(fileStat.st_size);
         std::ifstream inputStream;
-        inputStream.open(fileName.c_str(), std::ios::in);
+        inputStream.open(fileName.c_str(), std::ios::in | std::ios::binary);
 
         if (!inputStream.is_open())
             throw RuntimeException(10001, "file: " + fileName + " - open for read returned: " + strerror(errno));
@@ -95,7 +95,7 @@ namespace OpenLogReplicator {
         const std::string fileName(path + "/" + name + ".json");
         std::ofstream outputStream;
 
-        outputStream.open(fileName.c_str(), std::ios::out | std::ios::trunc);
+        outputStream.open(fileName.c_str(), std::ios::out | std::ios::trunc | std::ios::binary);
         if (!outputStream.is_open())
             throw RuntimeException(10006, "file: " + fileName + " - open for writing returned: " + strerror(errno));
 

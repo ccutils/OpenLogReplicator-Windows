@@ -34,6 +34,9 @@ along with OpenLogReplicator; see the file LICENSE;  If not see
 #include "common/exception/RuntimeException.h"
 #include "common/types/Data.h"
 #include "metadata/Metadata.h"
+#ifdef _WIN32
+#include "platform/windows/Service.h"
+#endif
 
 #ifdef LINK_LIBRARY_OCI
 #define HAS_OCI " OCI"
@@ -79,12 +82,24 @@ along with OpenLogReplicator; see the file LICENSE;  If not see
 
 namespace {
     OpenLogReplicator::Ctx* mainCtx = nullptr;
+#ifdef _WIN32
+    std::atomic<bool> shutdownRequested{false};
+    std::mutex contextLifetime;
+    void windowsRequestStop() {
+        shutdownRequested = true;
+        std::lock_guard<std::mutex> lock(contextLifetime);
+        if (mainCtx != nullptr) mainCtx->stopSoft();
+    }
+#endif
 
     void printStacktrace() {
         mainCtx->printStacktrace();
     }
 
     void signalHandler(int s) {
+#ifdef _WIN32
+        shutdownRequested = true;
+#endif
         mainCtx->signalHandler(s);
     }
 
@@ -114,7 +129,11 @@ namespace {
                 OpenLogReplicator_CMAKE_BUILD_TYPE + ", compiled: " + OpenLogReplicator_CMAKE_BUILD_TIMESTAMP + ", modules:"
                 HAS_KAFKA HAS_OCI HAS_PROMETHEUS HAS_PROTOBUF HAS_ZEROMQ HAS_STATIC HAS_THREAD_INFO);
 
+#ifdef _WIN32
+        const char* fileName = "config/OpenLogReplicator.json";
+#else
         const char* fileName = "scripts/OpenLogReplicator.json";
+#endif
         try {
             bool forceRoot = false;
             const std::regex regexTest(".*");
@@ -193,13 +212,29 @@ namespace {
     }
 }
 
+#ifdef _WIN32
+int windowsApplicationMain(int argc, char** argv) {
+#else
 int main(int argc, char** argv) {
+#endif
     OpenLogReplicator::Ctx ctx;
+#ifdef _WIN32
+    {
+        std::lock_guard<std::mutex> lock(contextLifetime);
+        mainCtx = &ctx;
+        if (shutdownRequested) ctx.stopSoft();
+    }
+#else
     mainCtx = &ctx;
+#endif
     signal(SIGINT, signalHandler);
+#ifndef _WIN32
     signal(SIGPIPE, signalHandler);
+#endif
     signal(SIGSEGV, signalCrash);
+#ifndef _WIN32
     signal(SIGUSR1, signalDump);
+#endif
 
     const char* logTimezone = std::getenv("OLR_LOG_TIMEZONE");
     if (logTimezone != nullptr)
@@ -216,10 +251,33 @@ int main(int argc, char** argv) {
     const int ret = mainFunction(argc, argv);
 
     signal(SIGINT, nullptr);
+#ifndef _WIN32
     signal(SIGPIPE, nullptr);
+#endif
     signal(SIGSEGV, nullptr);
+#ifndef _WIN32
     signal(SIGUSR1, nullptr);
+#endif
+#ifdef _WIN32
+    {
+        std::lock_guard<std::mutex> lock(contextLifetime);
+        mainCtx = nullptr;
+    }
+#else
     mainCtx = nullptr;
+#endif
 
+#ifdef _WIN32
+    // Worker failures call stopHard while the upstream main loop returns zero.
+    // Report failure to Windows/SCM without changing parser control flow.
+    return ctx.hardShutdown && !shutdownRequested ? 1 : ret;
+#else
     return ret;
+#endif
 }
+
+#ifdef _WIN32
+int main(int argc, char** argv) {
+    return olr_windows::runServiceOrConsole(argc, argv, windowsApplicationMain, windowsRequestStop);
+}
+#endif

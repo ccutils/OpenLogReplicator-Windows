@@ -34,7 +34,7 @@ namespace OpenLogReplicator {
         std::string msg;
 
         explicit BootException(int newCode, std::string newMsg);
-        BootException(const BootException&) = delete;
+        BootException(const BootException&) = default; // MSVC exception transport requires a real copy constructor.
 
         BootException& operator=(const BootException&) = delete;
 

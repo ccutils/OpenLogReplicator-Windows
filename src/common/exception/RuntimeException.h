@@ -36,7 +36,7 @@ namespace OpenLogReplicator {
 
         explicit RuntimeException(int newCode, std::string newMsg, int newSupCode = 0);
 
-        RuntimeException(const RuntimeException&) = delete;
+        RuntimeException(const RuntimeException&) = default; // MSVC exception transport requires a real copy constructor.
         RuntimeException& operator=(const RuntimeException&) = delete;
 
         friend std::ostream& operator<<(std::ostream& os, const RuntimeException& exception);

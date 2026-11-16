@@ -27,6 +27,7 @@ along with OpenLogReplicator; see the file LICENSE;  If not see
 #include <string>
 
 #include "../../../config.h"
+#include "../../platform/Memory.h"
 
 using typeResetlogs = uint32_t;
 using typeActivation = uint32_t;

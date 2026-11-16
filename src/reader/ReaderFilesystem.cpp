@@ -76,7 +76,7 @@ namespace OpenLogReplicator {
 #endif
 
         contextSet(CONTEXT::OS, REASON::OS);
-        fileDes = open(fileName.c_str(), flags);
+        fileDes = olrOpen(fileName.c_str(), flags);
         contextSet(CONTEXT::CPU);
         if (fileDes == -1) {
             ctx->error(10001, "file: " + fileName + " - open for read returned: " + strerror(errno));
@@ -148,6 +148,11 @@ namespace OpenLogReplicator {
     }
 
     void ReaderFilesystem::showHint(Thread* t, std::string origPath, std::string mappedPath) const {
+#ifdef _WIN32
+        (void)t;
+        ctx->hint("check Windows file ACLs and path mapping: " + origPath + " mapped to: " + mappedPath);
+        ctx->hint("the service account needs read access to redo and archive directories; use icacls to inspect permissions");
+#else
         bool first = true;
         uid_t uid = geteuid();
         gid_t gid = getegid();
@@ -238,5 +243,6 @@ namespace OpenLogReplicator {
 
             first = false;
         }
+#endif
     }
 }
