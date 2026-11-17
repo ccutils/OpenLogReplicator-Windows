@@ -1,0 +1,49 @@
+{
+  "version": "1.9.0",
+  "log-level": 3,
+  "source": [
+    {
+      "alias": "S1",
+      "name": "ORCL",
+      "reader": {
+        "type": "online",
+        "user": "OLR_CDC",
+        "password": "REPLACE_WITH_DATABASE_PASSWORD",
+        "server": "//127.0.0.1:1521/ORCL"
+      },
+      "format": {
+        "type": "json"
+      },
+      "state": {
+        "type": "disk",
+        "path": "checkpoint",
+        "interval-s": 10,
+        "keep-checkpoints": 100
+      },
+      "memory": {
+        "min-mb": 64,
+        "max-mb": 1024,
+        "swap-path": "swap"
+      },
+      "filter": {
+        "table": [
+          {
+            "owner": "OLR_TEST",
+            "table": "CDC_TEST"
+          }
+        ]
+      }
+    }
+  ],
+  "target": [
+    {
+      "alias": "NETWORK",
+      "source": "S1",
+      "writer": {
+        "type": "network",
+        "uri": "127.0.0.1:15081",
+        "max-message-mb": 10
+      }
+    }
+  ]
+}

@@ -38,7 +38,7 @@ along with OpenLogReplicator; see the file LICENSE;  If not see
 #endif /* LINK_LIBRARY_ZEROMQ */
 
 enum {
-    MAX_CLIENT_MESSAGE_SIZE = ((2 * 1024 * 1024 * 1024UL) - 1)
+    MAX_CLIENT_MESSAGE_SIZE = 64 * 1024 * 1024
 };
 
 static void send(OpenLogReplicator::pb::RedoRequest & request, OpenLogReplicator::Stream * stream, OpenLogReplicator::Ctx * ctx __attribute__((unused))) {
@@ -55,9 +55,9 @@ static uint64_t receive(OpenLogReplicator::pb::RedoResponse& response, OpenLogRe
     const uint64_t length = stream->receiveMessage(buffer, MAX_CLIENT_MESSAGE_SIZE);
 
     response.Clear();
-    if (decode && !response.ParseFromArray(buffer, length)) {
+    if (decode && !response.ParseFromArray(buffer, static_cast<int>(length))) {
         ctx->error(0, "response parse");
-        exit(0);
+        throw OpenLogReplicator::RuntimeException(1, "response parse");
     }
 
     return length;
@@ -99,19 +99,28 @@ int main(int argc, char** argv) {
     //      time:<time>,<seq> - start from given time (absolute) but start parsing redo log from sequence <seq>
     //      c:<scn>,<idx> - continue from given SCN and IDX
     //      next - continue with next message, from the last position
-    if (argc != 6) {
+    if (argc != 6 && argc != 8) {
         ctx.info(0, "use: ClientNetwork [network|zeromq] <uri> <database> <format> [now{,<seq>}|scn:<scn>{,<seq>}|time_rel:<time>{,<seq>}|"
-                 "time:<time>{,<seq>}|c:<scn>,<idx>|next]");
-        return 0;
+                 "time:<time>{,<seq>}|c:<scn>,<idx>|next] [--max-messages COUNT]");
+        return 1;
     }
 
     bool formatProtobuf;
     OpenLogReplicator::pb::RedoRequest request;
     OpenLogReplicator::pb::RedoResponse response;
     OpenLogReplicator::Stream* stream = nullptr;
-    auto* buffer = new uint8_t[MAX_CLIENT_MESSAGE_SIZE];
+    auto* buffer = new uint8_t[MAX_CLIENT_MESSAGE_SIZE + 1];
+    int result = 1;
 
     try {
+        uint64_t maxMessages = 0;
+        if (argc == 8) {
+            if (std::string(argv[6]) != "--max-messages" || std::string(argv[7]).find_first_not_of("0123456789") != std::string::npos)
+                throw OpenLogReplicator::RuntimeException(1, "expected --max-messages COUNT");
+            maxMessages = std::strtoull(argv[7], nullptr, 10);
+            if (!maxMessages) throw OpenLogReplicator::RuntimeException(1, "max-messages must be positive");
+        }
+        uint64_t receivedMessages = 0;
         const std::string arg1 = argv[1];
         if (arg1 == "network") {
             stream = new OpenLogReplicator::StreamNetwork(&ctx, argv[2]);
@@ -153,12 +162,12 @@ int main(int argc, char** argv) {
                 request.set_c_scn(OpenLogReplicator::Scn::none().getData());
                 request.set_c_idx(0);
             } else {
-                char* idxPtr;
+                char* idxPtr = nullptr;
                 if (arg5.substr(0, 2) != "c:" || strlen(argv[5]) <= 4 || (idxPtr = strchr(argv[5] + 2, ',')) == nullptr)
                     throw OpenLogReplicator::RuntimeException(1, "server already stared, expected: [c:<scn>,<idx>]");
                 *idxPtr = 0;
-                const OpenLogReplicator::Scn confirmedScn(atoi(argv[5] + 2));
-                const typeIdx confirmedIdx = atoi(idxPtr + 1);
+                const OpenLogReplicator::Scn confirmedScn(std::strtoull(argv[5] + 2, nullptr, 10));
+                const typeIdx confirmedIdx = std::strtoull(idxPtr + 1, nullptr, 10);
 
                 request.set_c_scn(confirmedScn.getData());
                 request.set_c_idx(confirmedIdx);
@@ -169,22 +178,22 @@ int main(int argc, char** argv) {
             char* idxPtr = strchr(argv[5], ',');
             if (idxPtr != nullptr) {
                 *idxPtr = 0;
-                request.set_seq(atoi(idxPtr + 1));
+                request.set_seq(static_cast<uint32_t>(std::strtoull(idxPtr + 1, nullptr, 10)));
                 paramSeq = ", seq: " + std::to_string(request.seq());
             }
 
-            if (arg5 == "now") {
+            if (std::string(argv[5]) == "now") {
                 request.set_scn(OpenLogReplicator::Scn::none().getData());
                 ctx.info(0, "START NOW" + paramSeq);
             } else if (arg5.substr(0, 4) == "scn:") {
-                request.set_scn(atoi(argv[5] + 4));
+                request.set_scn(std::strtoull(argv[5] + 4, nullptr, 10));
                 ctx.info(0, "START scn: " + std::to_string(request.scn()) + paramSeq);
             } else if (arg5.substr(0, 5) == "time:") {
                 std::string tms(argv[5] + 5);
                 request.set_tms(tms);
                 ctx.info(0, "START tms: " + request.tms() + paramSeq);
             } else if (arg5.substr(0, 9) == "time_rel:") {
-                request.set_tm_rel(atoi(argv[5] + 9));
+                request.set_tm_rel(std::strtoll(argv[5] + 9, nullptr, 10));
                 ctx.info(0, "START time_rel: " + std::to_string(request.tm_rel()) + paramSeq);
             } else
                 throw OpenLogReplicator::RuntimeException(1, "server is waiting to define position to start, expected: [now{,<seq>}|"
@@ -246,7 +255,7 @@ int main(int argc, char** argv) {
                         default:
                             msg = "??? UNKNOWN ???";
                     }
-                    ctx.info(0, "- scn: " + std::to_string(response.scn()) + ", idx: " + std::to_string(response.scn()) + ", code: " +
+                    ctx.info(0, "- scn: " + std::to_string(response.scn()) + ", idx: " + std::to_string(response.c_idx()) + ", code: " +
                              std::to_string(static_cast<uint>(response.code())) + ", length: " + std::to_string(length) + ", op: " + msg);
                 } else {
                     ctx.info(0, "- scn: " + std::to_string(response.scn()) + ", code: " +
@@ -270,21 +279,42 @@ int main(int argc, char** argv) {
             }
 
             ++num;
+            ++receivedMessages;
             const time_ut now = ctx.clock->getTimeUt();
             const double timeDelta = static_cast<double>(now - last) / 1000000.0;
 
             // Confirm every 1000 messages or every 10 seconds
-            if (num > 1000 || timeDelta > 10) {
+            if (num > 1000 || timeDelta > 10 || (maxMessages && receivedMessages >= maxMessages)) {
                 request.Clear();
                 request.set_code(OpenLogReplicator::pb::RequestCode::CONFIRM);
                 request.set_c_scn(cScn.getData());
-                request.set_c_idx(cIdx);
+                request.set_c_idx(cIdx ? cIdx - 1 : 0);
                 request.set_database_name(argv[3]);
                 ctx.info(0, "CONFIRM scn: " + std::to_string(request.c_scn()) + ", idx: " + std::to_string(request.c_idx()) +
                          ", database: " + request.database_name());
                 send(request, stream, &ctx);
                 num = 0;
                 last = now;
+            }
+            if (maxMessages && receivedMessages >= maxMessages) {
+                // INFO is ordered after CONFIRM. Observe its reply before closing
+                // the socket, otherwise ZeroMQ LINGER=0 may discard the final ACK.
+                const auto confirmedScn = request.c_scn();
+                const auto confirmedIdx = request.c_idx();
+                request.Clear(); request.set_code(OpenLogReplicator::pb::RequestCode::INFO);
+                request.set_database_name(argv[3]); send(request, stream, &ctx);
+                for (;;) {
+                    const auto replyLength = receive(response, stream, &ctx, buffer, false);
+                    if (!response.ParseFromArray(buffer, static_cast<int>(replyLength)) ||
+                        response.code() == OpenLogReplicator::pb::ResponseCode::PAYLOAD) continue;
+                    if (response.code() != OpenLogReplicator::pb::ResponseCode::REPLICATE ||
+                        response.c_scn() < confirmedScn ||
+                        (response.c_scn() == confirmedScn && response.c_idx() < confirmedIdx))
+                        throw OpenLogReplicator::RuntimeException(1, "final confirmation was not acknowledged");
+                    break;
+                }
+                ctx.info(0, "final confirmation acknowledged");
+                result = 0; break;
             }
         }
     } catch (OpenLogReplicator::DataException& ex) {
@@ -302,5 +332,5 @@ int main(int argc, char** argv) {
     delete[] buffer;
     delete stream;
 
-    return 0;
+    return result;
 }

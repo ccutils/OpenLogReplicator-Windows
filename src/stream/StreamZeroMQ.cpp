@@ -19,6 +19,7 @@ along with OpenLogReplicator; see the file LICENSE;  If not see
 
 #include <unistd.h>
 #include <zmq.h>
+#include <climits>
 
 #include "../common/Ctx.h"
 #include "../common/Thread.h"
@@ -31,8 +32,8 @@ namespace OpenLogReplicator {
             Stream(newCtx, std::move(newUri)) {}
 
     StreamZeroMQ::~StreamZeroMQ() {
-        zmq_close(socket);
-        zmq_ctx_term(context);
+        if (socket != nullptr) zmq_close(socket);
+        if (context != nullptr) zmq_ctx_term(context);
     }
 
     void StreamZeroMQ::initialize() {
@@ -44,6 +45,11 @@ namespace OpenLogReplicator {
         if (socket == nullptr) {
             throw RuntimeException(10066, "ZeroMQ initializing socket failed, message: " + std::to_string(errno));
         }
+        const int linger = 0;
+        const int receiveTimeout = 100;
+        if (zmq_setsockopt(socket, ZMQ_LINGER, &linger, sizeof(linger)) != 0 ||
+            zmq_setsockopt(socket, ZMQ_RCVTIMEO, &receiveTimeout, sizeof(receiveTimeout)) != 0)
+            throw RuntimeException(10066, "ZeroMQ socket options failed: " + std::to_string(zmq_errno()));
     }
 
     std::string StreamZeroMQ::getName() const {
@@ -61,39 +67,49 @@ namespace OpenLogReplicator {
     }
 
     void StreamZeroMQ::sendMessage(const void* msg, uint64_t length) {
+        if (length > INT_MAX)
+            throw NetworkException(10055, "ZeroMQ frame exceeds supported size");
         while (!ctx->softShutdown) {
             const int64_t ret = zmq_send(socket, msg, length, ZMQ_NOBLOCK);
             if (ret == static_cast<int64_t>(length))
                 return;
 
-            if (ret < 0 && errno == EAGAIN) {
-                ctx->writerThread->contextSet(Thread::CONTEXT::SLEEP);
+            if (ret < 0 && zmq_errno() == EAGAIN) {
+                if (ctx->writerThread) ctx->writerThread->contextSet(Thread::CONTEXT::SLEEP);
                 usleep(ctx->pollIntervalUs);
-                ctx->writerThread->contextSet(Thread::CONTEXT::CPU);
+                if (ctx->writerThread) ctx->writerThread->contextSet(Thread::CONTEXT::CPU);
                 continue;
             }
 
             throw NetworkException(10054, "network send error");
         }
+        throw NetworkException(10056, "ZeroMQ stream stopped");
     }
 
     uint64_t StreamZeroMQ::receiveMessage(void* msg, uint64_t length) {
-        const int64_t ret = zmq_recv(socket, msg, length, 0);
-
-        if (ret < 0)
-            throw NetworkException(10053, "network receive error");
-
-        return ret;
+        while (!ctx->softShutdown && !ctx->hardShutdown) {
+            const int64_t ret = zmq_recv(socket, msg, length, 0);
+            if (ret >= 0) {
+                if (static_cast<uint64_t>(ret) > length) throw NetworkException(10055, "ZeroMQ frame exceeds receiver buffer");
+                return ret;
+            }
+            if (zmq_errno() != EAGAIN) throw NetworkException(10053, "network receive error");
+        }
+        throw NetworkException(10056, "ZeroMQ stream stopped");
     }
 
     uint64_t StreamZeroMQ::receiveMessageNB(void* msg, uint64_t length) {
         const int64_t ret = zmq_recv(socket, msg, length, ZMQ_DONTWAIT);
         if (ret < 0) {
-            if (errno == EWOULDBLOCK || errno == EAGAIN)
+            if (zmq_errno() == EAGAIN) {
+                errno = EAGAIN;
                 return 0;
+            }
 
             throw NetworkException(10053, "network receive error");
         }
+        if (static_cast<uint64_t>(ret) > length) throw NetworkException(10055, "ZeroMQ frame exceeds receiver buffer");
+        if (ret == 0) errno = EAGAIN;
         return ret;
     }
 

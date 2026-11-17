@@ -185,16 +185,14 @@ inline int ffsll(int64_t value) {
     return _BitScanForward64(&index, static_cast<uint64_t>(value)) ? static_cast<int>(index + 1) : 0;
 }
 
-// gettimeofday uses signed 64-bit seconds, unlike Winsock's 32-bit timeval.
-struct timeval { int64_t tv_sec; int64_t tv_usec; };
-inline int gettimeofday(timeval* value, void*) {
+// Keep this separate from Winsock's 32-bit timeval namespace and arithmetic.
+inline int64_t olrUtcMicroseconds() {
     FILETIME fileTime;
     GetSystemTimePreciseAsFileTime(&fileTime); // Windows 8 / Server 2012
     ULARGE_INTEGER ticks;
     ticks.LowPart = fileTime.dwLowDateTime; ticks.HighPart = fileTime.dwHighDateTime;
     const int64_t micros = static_cast<int64_t>(ticks.QuadPart / 10) - 11644473600000000LL;
-    value->tv_sec = micros / 1000000; value->tv_usec = micros % 1000000;
-    return 0;
+    return micros;
 }
 
 using pthread_t = std::thread*;

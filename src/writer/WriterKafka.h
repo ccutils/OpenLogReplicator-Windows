@@ -34,6 +34,7 @@ namespace OpenLogReplicator {
         rd_kafka_t* rk{nullptr};
         rd_kafka_topic_t* rkt{nullptr};
         rd_kafka_conf_t* conf{nullptr};
+        bool flushFailed{false};
         static void dr_msg_cb(rd_kafka_t* rkCb, const rd_kafka_message_t* rkMessage, void* opaque);
         static void error_cb(rd_kafka_t* rkCb, int err, const char* reason, void* opaque);
         static void logger_cb(const rd_kafka_t* rkCb, int level, const char* fac, const char* buf);
@@ -43,6 +44,7 @@ namespace OpenLogReplicator {
         void pollQueue() override;
 
     public:
+        void flush() override;
         static constexpr uint64_t MAX_KAFKA_MESSAGE_MB = 953;
 
         WriterKafka(Ctx* newCtx, std::string newAlias, std::string newDatabase, Builder* newBuilder, Metadata* newMetadata, std::string newTopic);

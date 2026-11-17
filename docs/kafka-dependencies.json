@@ -1,0 +1,25 @@
+{
+  "librdkafka": {
+    "version": "2.8.0",
+    "commit": "b4c608570f796c18ff2211a7af876046d264d392",
+    "static": true,
+    "runtime": "MSVC /MT",
+    "target": "NT 6.3",
+    "scram": true
+  },
+  "openssl": {
+    "version": "3.5.9",
+    "commit": "45e844fa2a14ec92d146bd8f5778ac130b6625fb",
+    "source": "https://github.com/openssl/openssl/tree/openssl-3.5.9",
+    "static": true,
+    "assembly": false,
+    "dynamic_modules": false,
+    "license": "licenses/OpenSSL.txt"
+  },
+  "verification_client": {
+    "name": "confluent-kafka Python",
+    "version": "2.16.1",
+    "role": "local topic creation and independent consumption, not part of product runtime"
+  },
+  "tested_executable_sha256": "48D4C83074890C451C7B9BB6B33051F97495341824CAA14D36FB6A8DA98BAACE"
+}

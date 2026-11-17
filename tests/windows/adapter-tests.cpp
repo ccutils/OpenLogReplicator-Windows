@@ -63,8 +63,8 @@ int main() {
     void* memory = olr_windows::alignedAllocate(4096, 16384);
     require(memory && reinterpret_cast<uintptr_t>(memory) % 4096 == 0, "aligned allocation");
     olr_windows::alignedRelease(memory);
-    timeval now{}; require(gettimeofday(&now, nullptr) == 0, "clock");
-    require(std::llabs(now.tv_sec - static_cast<int64_t>(time(nullptr))) <= 2, "64-bit UTC clock");
+    const int64_t micros = olrUtcMicroseconds();
+    require(std::llabs(micros / 1000000 - static_cast<int64_t>(time(nullptr))) <= 2, "64-bit UTC clock");
     require(ffsll(0) == 0 && ffsll(1) == 1 && ffsll(INT64_MIN) == 64, "bit scan boundary contract");
     for (unsigned i = 0; i < 64; ++i) require(ffsll(static_cast<int64_t>(uint64_t{1} << i)) == i + 1, "bit scan positions");
     try { throw OpenLogReplicator::DataException(123, std::string(4000, 'x')); }

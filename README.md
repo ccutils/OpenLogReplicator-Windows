@@ -11,6 +11,12 @@
 
 ## 构建最小版本
 
+本轮连接器发布包为 `OpenLogReplicator-Windows-v1.9.0-connectors-x64.zip`，
+启用 OCI、文件输出、Kafka（含 SCRAM）、TCP Stream、ZeroMQ 和 Protobuf；Prometheus 仍关闭。
+包内包含 `bin/StreamClient.exe`、两份流输出模板和 `proto/OraProtoBuf.proto`。
+使用方式、协议和目标服务器实测见 [流输出说明](docs/windows-streams.md)。
+下述最小构建命令继续生成不带可选连接器的基础版本。
+
 构建主机安装 Visual Studio C++ x64 工具链与 CMake（不要求在 Server 2012 R2 上编译）。
 准备 RapidJSON v1.1.0 头文件和合法取得、适用于目标系统的 Oracle Windows x64 OCI SDK/运行库。
 SDK 布局为 `sdk/include/oci.h` 和 `sdk/lib/msvc/oci.lib`。Oracle DLL 不包含在本产品中。

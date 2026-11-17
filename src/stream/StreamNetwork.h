@@ -20,15 +20,35 @@ along with OpenLogReplicator; see the file LICENSE;  If not see
 #ifndef STREAM_NETWORK_H_
 #define STREAM_NETWORK_H_
 
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <array>
+#include <vector>
+#else
 #include <netinet/in.h>
+#endif
 
 #include "Stream.h"
 
 namespace OpenLogReplicator {
     class StreamNetwork final : public Stream {
     protected:
+#ifdef _WIN32
+        SOCKET socketFD{INVALID_SOCKET};
+        SOCKET serverFD{INVALID_SOCKET};
+        bool winsockStarted{false};
+        std::array<uint8_t, 12> incomingHeader{};
+        size_t incomingHeaderUsed{0};
+        std::vector<uint8_t> incomingBody;
+        size_t incomingBodyUsed{0};
+        bool incomingLengthKnown{false};
+        bool completedFrame{false};
+        void disconnect();
+#else
         int socketFD{-1};
         int serverFD{-1};
+#endif
         sockaddr_storage address{};
         std::string host;
         std::string port;

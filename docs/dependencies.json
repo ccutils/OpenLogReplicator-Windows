@@ -1,4 +1,5 @@
 {
+  "artifact": "Frozen minimal baseline; current connector package additions are in kafka-dependencies.json and stream-dependencies.json",
   "upstream": {
     "repository": "https://github.com/bersler/OpenLogReplicator",
     "tag": "v1.9.0",

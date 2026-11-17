@@ -118,8 +118,12 @@ if (WITH_PROTOBUF)
     list(APPEND ListBuilder
             builder/BuilderProtobuf.cpp)
     list(APPEND ListStream
-            stream/Stream.cpp
-            stream/StreamNetwork.cpp)
+            stream/Stream.cpp)
+    if(WIN32)
+        list(APPEND ListStream platform/windows/StreamNetworkWindows.cpp)
+    else()
+        list(APPEND ListStream stream/StreamNetwork.cpp)
+    endif()
     list(APPEND ListWriter
             writer/WriterStream.cpp)
 
@@ -138,6 +142,9 @@ add_library(LibReader OBJECT ${ListReader})
 add_library(LibMetadata OBJECT ${ListMetadata})
 add_library(LibState OBJECT ${ListState})
 add_library(LibWriter OBJECT ${ListWriter})
+if(WIN32 AND WITH_RDKAFKA)
+    target_link_libraries(LibWriter PRIVATE RdKafka::rdkafka)
+endif()
 
 target_sources(OpenLogReplicator PUBLIC OpenLogReplicator.cpp main.cpp)
 target_link_libraries(OpenLogReplicator LibCommon)
@@ -152,6 +159,15 @@ target_link_libraries(OpenLogReplicator LibWriter)
 
 if (WITH_PROTOBUF)
     add_library(LibStream ${ListStream})
+    if(WIN32)
+        target_link_libraries(LibCommon PUBLIC protobuf::libprotobuf)
+        target_link_libraries(LibBuilder PUBLIC protobuf::libprotobuf)
+        target_link_libraries(LibWriter PRIVATE protobuf::libprotobuf)
+        target_link_libraries(LibStream PUBLIC ws2_32 protobuf::libprotobuf)
+        if(WITH_ZEROMQ)
+            target_link_libraries(LibStream PUBLIC libzmq-static)
+        endif()
+    endif()
     target_link_libraries(OpenLogReplicator LibStream)
 
     target_sources(StreamClient PUBLIC StreamClient.cpp)

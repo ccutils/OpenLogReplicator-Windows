@@ -21,9 +21,13 @@ along with OpenLogReplicator; see the file LICENSE;  If not see
 
 namespace OpenLogReplicator {
     time_ut ClockHW::getTimeUt() const {
+#ifdef _WIN32
+        return olrUtcMicroseconds();
+#else
         timeval tv = {0, 0};
         gettimeofday(&tv, nullptr);
         return (1000000 * tv.tv_sec) + tv.tv_usec;
+#endif
     }
 
     time_t ClockHW::getTimeT() const {

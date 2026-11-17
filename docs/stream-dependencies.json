@@ -1,0 +1,7 @@
+{
+  "protobuf": {"version":"21.12", "commit":"f0dc78d7e6e331b8c6bb2d5283e06aa26883ca7c", "repository":"https://github.com/protocolbuffers/protobuf", "static":true, "runtime":"MSVC /MT", "license":"licenses/Protobuf.txt"},
+  "libzmq": {"version":"4.3.5", "commit":"622fc6dde99ee172ebaa9c8628d85a7a1995a21d", "repository":"https://github.com/zeromq/libzmq", "static":true, "runtime":"MSVC /MT", "target":"NT 6.3", "poller":"select", "ipc":false, "curve":false, "websocket":false, "license":"licenses/ZeroMQ.txt"},
+  "enabled":["OCI","file","Kafka/SCRAM","Protobuf","TCP Stream","ZeroMQ"],
+  "disabled":["Prometheus"],
+  "tested_executable_sha256":"8193B5207C94873DE2490A6E4019240E46239361BA24ECFD0A66765259AE6FA0"
+}

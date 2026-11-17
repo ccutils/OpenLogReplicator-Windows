@@ -37,9 +37,11 @@ namespace OpenLogReplicator {
         if (rkt != nullptr)
             rd_kafka_topic_destroy(rkt);
 
-        const rd_kafka_resp_err_t err = rd_kafka_fatal_error(rk, nullptr, 0);
-        if (rk != nullptr)
+        rd_kafka_resp_err_t err = RD_KAFKA_RESP_ERR_NO_ERROR;
+        if (rk != nullptr) {
+            err = rd_kafka_fatal_error(rk, nullptr, 0);
             rd_kafka_destroy(rk);
+        }
 
         ctx->info(0, "Kafka producer exit code: " + std::to_string(err));
     }
@@ -48,6 +50,18 @@ namespace OpenLogReplicator {
         if (properties.find(key) != properties.end())
             throw ConfigurationException(30009, "Kafka property '" + key + "' is defined multiple times");
         properties.insert_or_assign(std::move(key), std::move(value));
+    }
+
+    void WriterKafka::flush() {
+        if (rk == nullptr || flushFailed)
+            return;
+        const rd_kafka_resp_err_t error = rd_kafka_flush(rk, 30000);
+        if (error != RD_KAFKA_RESP_ERR_NO_ERROR || currentQueueSize != 0) {
+            flushFailed = true;
+            ctx->error(10057, "Kafka shutdown has unconfirmed messages: " + std::to_string(currentQueueSize) +
+                       ", flush: " + rd_kafka_err2str(error));
+            ctx->stopHard();
+        }
     }
 
     void WriterKafka::initialize() {

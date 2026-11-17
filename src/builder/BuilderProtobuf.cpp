@@ -60,7 +60,7 @@ namespace OpenLogReplicator {
         char* retPtr;
 
         if (scale == 0 && precision <= 17) {
-            const int64_t value = strtol(valueBuffer, &retPtr, 10);
+            const int64_t value = strtoll(valueBuffer, &retPtr, 10);
             valuePB->set_value_int(value);
         } else if (precision <= 6 && scale < 38) {
             const float value = strtof(valueBuffer, &retPtr);
